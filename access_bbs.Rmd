@@ -1,0 +1,52 @@
+---
+title: "Occurrence databases in R"
+author: "Kari Norman"
+date: "9/18/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(rgbif)
+library(spocc)
+library(rbison)
+```
+
+#Bison database
+BBS data is accessible through the BISON database, which interfaces through the rbison package. The number of rows requested must be specified, making it difficult to get all the data, and it breaks for queries >100,000. It also doesn't include some of the quality metrics from the original database or abundance numbers.
+Problems:
+* want to get all the rows of data
+* limit to the number of rows you can request at one time
+* some databases have additional data like abundances or quality scores that aren't included in the query
+
+```{r}
+bison_bbs <- bison_solr(resourceID = '440,100043', rows = 99999, year =  c('2006', '2016'))
+bison_bbs_data <- (bison_bbs$points)
+
+```
+
+We want to be able to access a bunch of different occurrence datasets through the same workflow, spocc::occ() is designed to do that. For example, you can request all the data from a certain dataprovider (the BISON database). However, it also requires a row limit (default is 500).
+```{r}
+df <- occ(from = "bison")
+data <- as.data.frame(df$bison$data$custom_query)
+View(data)
+```
+
+I also can't seem to get occ to recognize arguments for the specific databases (i.e. the resourceID argument). Below, which follows their example code, returns the wrong dataset.
+```{r}
+#bbs <- occ(from = "bison", obisopts = list(ownerInstitutionCollectionCode = "USGS PWRC - North American Breeding Bird Survey"), limit = 10)
+occ_bbs <- occ(from = "bison", obisopts = list(resourceID = '440,100043', rows = 1000), limit = 1000)
+
+bbs_data <- occ_bbs$bison$data$custom_query
+
+```
+
+Try to get around the row limit issue by getting a year at a time, but you can't even get a whole year in the row limit.
+```{r}
+bbs_2006 <- bison_solr(resourceID = '440,100043', rows = 99999, year = '2006')$points
+dim(bbs_2006)
+```
+
